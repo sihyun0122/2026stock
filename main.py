@@ -266,9 +266,9 @@ PLOTLY_THEME = dict(
     paper_bgcolor="#111827",
     plot_bgcolor="#111827",
     font=dict(family="Space Mono, monospace", color="#94a3b8", size=11),
-    gridcolor="#1e293b",
-    zerolinecolor="#1e293b",
 )
+
+AXIS_STYLE = dict(gridcolor="#1e293b", zerolinecolor="#334155", showgrid=True)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 @st.cache_data(ttl=300, show_spinner=False)
@@ -478,12 +478,13 @@ if returns_data:
         **PLOTLY_THEME,
         height=max(300, len(rdf) * 38),
         margin=dict(l=0, r=80, t=20, b=20),
-        xaxis=dict(gridcolor="#1e293b", zerolinecolor="#334155",
-                   ticksuffix="%", tickfont=dict(size=10)),
-        yaxis=dict(gridcolor="rgba(0,0,0,0)", tickfont=dict(size=10)),
+        xaxis=dict(ticksuffix="%", tickfont=dict(size=10)),
+        yaxis=dict(tickfont=dict(size=10), showgrid=False),
         showlegend=False,
         bargap=0.3,
     )
+    fig_bar.update_xaxes(**AXIS_STYLE)
+    fig_bar.update_yaxes(gridcolor="rgba(0,0,0,0)", showgrid=False)
     # Zero line
     fig_bar.add_vline(x=0, line=dict(color="#334155", width=1.5))
     st.plotly_chart(fig_bar, use_container_width=True)
@@ -529,9 +530,8 @@ def build_norm_chart(data_dict: dict, label: str, palette: list, height=450):
         **PLOTLY_THEME,
         height=height,
         margin=dict(l=0, r=0, t=20, b=20),
-        xaxis=dict(gridcolor="#1e293b", showgrid=True),
-        yaxis=dict(gridcolor="#1e293b", showgrid=True,
-                   ticksuffix="", title="지수 (시작=100)"),
+        xaxis=dict(showgrid=True),
+        yaxis=dict(showgrid=True, ticksuffix="", title="지수 (시작=100)"),
         legend=dict(
             bgcolor="rgba(0,0,0,0)",
             bordercolor="#1e293b",
@@ -543,6 +543,8 @@ def build_norm_chart(data_dict: dict, label: str, palette: list, height=450):
         ),
         hovermode="x unified",
     )
+    fig.update_xaxes(**AXIS_STYLE)
+    fig.update_yaxes(**AXIS_STYLE)
     return fig
 
 with tab1:
@@ -686,8 +688,8 @@ if all_stocks_map:
                 x=0,
             ),
         )
-        fig_detail.update_xaxes(gridcolor="#1e293b", showgrid=True)
-        fig_detail.update_yaxes(gridcolor="#1e293b", showgrid=True)
+        fig_detail.update_xaxes(**AXIS_STYLE)
+        fig_detail.update_yaxes(**AXIS_STYLE)
         st.plotly_chart(fig_detail, use_container_width=True)
 
 st.markdown("<hr>", unsafe_allow_html=True)
@@ -777,10 +779,12 @@ if scatter_data:
         **PLOTLY_THEME,
         height=420,
         margin=dict(l=0, r=0, t=20, b=20),
-        xaxis=dict(title="변동성 (%)", gridcolor="#1e293b"),
-        yaxis=dict(title="수익률 (%)", gridcolor="#1e293b", ticksuffix="%"),
+        xaxis=dict(title="변동성 (%)"),
+        yaxis=dict(title="수익률 (%)", ticksuffix="%"),
         legend=dict(bgcolor="rgba(0,0,0,0)", bordercolor="#1e293b", borderwidth=1),
     )
+    fig_sc.update_xaxes(**AXIS_STYLE)
+    fig_sc.update_yaxes(**AXIS_STYLE)
     st.plotly_chart(fig_sc, use_container_width=True)
 
 # ── Footer ────────────────────────────────────────────────────────────────────
