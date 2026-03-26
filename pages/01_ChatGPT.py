@@ -4,12 +4,19 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
 
-st.set_page_config(page_title="📊 글로벌 주식 비교 앱", layout="wide")
+# ------------------------
+# 기본 설정
+# ------------------------
+st.set_page_config(
+    page_title="글로벌 주식 비교",
+    layout="wide",
+)
 
-st.title("📊 한국 🇰🇷 vs 미국 🇺🇸 주식 비교 분석")
+st.title("🌍 글로벌 주식 수익률 비교")
+st.caption("한국 🇰🇷 vs 미국 🇺🇸 주요 종목")
 
 # ------------------------
-# 기본 주식 리스트
+# 주식 리스트
 # ------------------------
 korea_stocks = {
     "삼성전자": "005930.KS",
@@ -26,18 +33,18 @@ us_stocks = {
 }
 
 # ------------------------
-# 사이드바 설정
+# 사이드바
 # ------------------------
 st.sidebar.header("⚙️ 설정")
 
 selected_korea = st.sidebar.multiselect(
-    "🇰🇷 한국 주식 선택",
+    "🇰🇷 한국 주식",
     list(korea_stocks.keys()),
     default=["삼성전자"]
 )
 
 selected_us = st.sidebar.multiselect(
-    "🇺🇸 미국 주식 선택",
+    "🇺🇸 미국 주식",
     list(us_stocks.keys()),
     default=["Apple"]
 )
@@ -50,25 +57,59 @@ end_date = st.sidebar.date_input("종료 날짜", datetime.today())
 # ------------------------
 tickers = []
 
-for stock in selected_korea:
-    tickers.append(korea_stocks[stock])
+for k in selected_korea:
+    tickers.append(korea_stocks[k])
 
-for stock in selected_us:
-    tickers.append(us_stocks[stock])
+for u in selected_us:
+    tickers.append(us_stocks[u])
+
+if len(tickers) == 0:
+    st.warning("⚠️ 최소 1개 이상의 종목을 선택하세요.")
+    st.stop()
 
 # ------------------------
-# 데이터 다운로드
+# 데이터 로딩 (핵심 안정화)
 # ------------------------
 @st.cache_data
 def load_data(tickers, start, end):
-    data = yf.download(tickers, start=start, end=end)["Adj Close"]
-    return data
+    try:
+        df = yf.download(
+            tickers,
+            start=start,
+            end=end,
+            progress=False,
+            threads=False
+        )
 
-if len(tickers) == 0:
-    st.warning("주식을 하나 이상 선택하세요!")
-    st.stop()
+        if df.empty:
+            return None
+
+        # MultiIndex 처리 (여러 종목)
+        if isinstance(df.columns, pd.MultiIndex):
+            if "Adj Close" in df.columns:
+                data = df["Adj Close"]
+            else:
+                data = df["Close"]
+
+        # 단일 종목 처리
+        else:
+            if "Adj Close" in df.columns:
+                data = df[["Adj Close"]]
+            else:
+                data = df[["Close"]]
+
+            data.columns = tickers
+
+        return data
+
+    except Exception:
+        return None
 
 data = load_data(tickers, start_date, end_date)
+
+if data is None or data.empty:
+    st.error("❌ 데이터를 불러오지 못했습니다. (티커 또는 기간 확인)")
+    st.stop()
 
 # ------------------------
 # 수익률 계산
@@ -87,35 +128,36 @@ for col in returns.columns:
         go.Scatter(
             x=returns.index,
             y=returns[col],
-            mode='lines',
+            mode="lines",
             name=col
         )
     )
 
 fig.update_layout(
-    height=600,
     template="plotly_dark",
+    height=600,
     legend_title="종목",
+    hovermode="x unified"
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
 # ------------------------
-# 현재 수익률 테이블
+# 수익률 순위
 # ------------------------
-st.subheader("📊 현재 수익률")
+st.subheader("🏆 수익률 순위")
 
 latest_returns = returns.iloc[-1].sort_values(ascending=False)
 
 df_returns = pd.DataFrame({
     "종목": latest_returns.index,
-    "수익률 (%)": latest_returns.values
+    "수익률 (%)": latest_returns.values.round(2)
 })
 
 st.dataframe(df_returns, use_container_width=True)
 
 # ------------------------
-# 원본 가격 데이터
+# 원본 데이터
 # ------------------------
-with st.expander("📉 원본 가격 데이터 보기"):
-    st.dataframe(data)
+with st.expander("📉 원본 데이터 보기"):
+    st.dataframe(data, use_container_width=True)
